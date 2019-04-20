@@ -110,26 +110,25 @@ fn generate_word_cs(base_gen:(RistrettoPoint,RistrettoPoint,RistrettoPoint,Ristr
     let mut word=(w*base_gen.0, w*base_gen.1, w*base_gen.2, base_gen.4);
     // write input message
 
-    let res = hash_to_scal(word.1);
+    let res = hash_to_scal(word);
     word.3=w*(base_gen.3+res*base_gen.4);
 
     (w,word)
 }
 
-fn hash_to_scal(p:RistrettoPoint)->Scalar{
+fn hash_to_scal(word:(RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint))->Scalar{
+    // Returns a Scalar corresponding to the hash of the first three coordinates
     let mut has = Sha3_512::new();
-    has.input(p.compress().to_bytes());
-    let mut hash: [u8; 64] = [0u8; 64];
-    hash.copy_from_slice(has.result().as_slice());
-    let mut digest: [u8; 32] = [0u8; 32];
-    digest.copy_from_slice(&hash[..32]);
+    has.input(word.0.compress().to_bytes());
+    has.input(word.1.compress().to_bytes());
+    has.input(word.2.compress().to_bytes());
 
-    Scalar::from_bits(digest)
+    Scalar::from_hash(has)
 }
 
 fn hash_hps_cs(hk:(Scalar,Scalar,Scalar,Scalar,Scalar),word:(RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint))->RistrettoPoint{
     println!("Computes the verifier hash as the scalar product between the hk and the word");
-    let res = hash_to_scal(word.1);
+    let res = hash_to_scal(word);
     (hk.0 + res * hk.4) * word.0 + hk.1 * word.1 + hk.2 * word.2 + hk.3*word.3
 }
 
@@ -209,7 +208,7 @@ mod test {
         hk.clear();
 
         // Verifier computes his view hp^wit
-        let res = hash_to_scal(word.1);
+        let res = hash_to_scal(word);
         let hb=proj_hash_cs(hp,w,res);
         w.clear();
 
