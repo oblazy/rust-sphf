@@ -1,0 +1,17 @@
+[package]
+name = "sphf"
+version = "0.1.0"
+authors = ["olivier <olivier@blazy.eu>"]
+edition = "2018"
+
+[dependencies]
+curve25519-dalek = { version = "1", default-features = false }
+rand_core = { version = "0.3", default-features = false }
+rand_os = "0.1"
+sha3 = "0.8.1"
+clear_on_drop = "0.2.3"
+
+[features]
+default = ["std", "u64_backend"]
+std = ["curve25519-dalek/std"]
+u64_backend = ["curve25519-dalek/u64_backend"]
