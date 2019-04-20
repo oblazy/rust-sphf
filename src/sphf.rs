@@ -44,12 +44,9 @@ fn define_language()->(RistrettoPoint,RistrettoPoint){
 
 fn proj_kg(base_gen:(RistrettoPoint,RistrettoPoint))->((Scalar,Scalar),RistrettoPoint){
     println!("Generates a pair of hashing keys (hk, hp)");
-    let mut csprng = OsRng::new().unwrap();
-    let mut bytes = [0u8; 32];
-    csprng.fill_bytes(&mut bytes);
-    let lg=clamp_scalar(bytes);  // random scalar to "check" the computation on g
-    csprng.fill_bytes(&mut bytes);
-    let lh=clamp_scalar(bytes); // random scalar to "check" the computation on h
+    let mut rng = OsRng::new().unwrap();
+    let lg=Scalar::random(&mut rng);  // random scalar to "check" the computation on g
+    let lh=Scalar::random(&mut rng); // random scalar to "check" the computation on h
 
     let hp=lg * base_gen.0 + lh * base_gen.1;
     ((lg,lh),hp)
@@ -57,10 +54,8 @@ fn proj_kg(base_gen:(RistrettoPoint,RistrettoPoint))->((Scalar,Scalar),Ristretto
 
 fn generate_word(base_gen:(RistrettoPoint,RistrettoPoint))->(Scalar,(RistrettoPoint,RistrettoPoint)){
     println!("Generate a witness and a Word");
-    let mut csprng = OsRng::new().unwrap();
-    let mut bytes = [0u8; 32];
-    csprng.fill_bytes(&mut bytes);
-    let w=clamp_scalar(bytes);
+    let mut rng = OsRng::new().unwrap();
+    let w=Scalar::random(&mut rng);
 
     let word=(w*base_gen.0, w*base_gen.1);
     (w,word)
@@ -95,18 +90,12 @@ fn define_language_cs()->(RistrettoPoint,RistrettoPoint,RistrettoPoint,Ristretto
 
 fn proj_kg_cs(base_gen:(RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint))->((Scalar,Scalar,Scalar,Scalar,Scalar),(RistrettoPoint,RistrettoPoint)){
     println!("Generates a pair of hashing keys (hk, hp)");
-    let mut csprng = OsRng::new().unwrap();
-    let mut bytes = [0u8; 32];
-    csprng.fill_bytes(&mut bytes);
-    let lg=clamp_scalar(bytes);  // random scalar to "check" the computation on g
-    csprng.fill_bytes(&mut bytes);
-    let lh=clamp_scalar(bytes); // random scalar to "check" the computation on h
-    csprng.fill_bytes(&mut bytes);
-    let lf=clamp_scalar(bytes); // random scalar to "check" the computation on f
-    csprng.fill_bytes(&mut bytes);
-    let lc=clamp_scalar(bytes); // random scalar to "check" the computation on c and d
-    csprng.fill_bytes(&mut bytes);
-    let lgg=clamp_scalar(bytes); // random scalar to "check" the computation on g again {Trick to get a KV on CS. BBCPV14}
+    let mut rng = OsRng::new().unwrap();
+    let lg=Scalar::random(&mut rng);  // random scalar to "check" the computation on g
+    let lh=Scalar::random(&mut rng); // random scalar to "check" the computation on h
+    let lf=Scalar::random(&mut rng); // random scalar to "check" the computation on f
+    let lc=Scalar::random(&mut rng); // random scalar to "check" the computation on c and d
+    let lgg=Scalar::random(&mut rng); // random scalar to "check" the computation on g again {Trick to get a KV on CS. BBCPV14}
 
     let hpa = lg * base_gen.0 + lh * base_gen.1 + lf * base_gen.2  + lc * base_gen.3;
     let hpb= lgg * base_gen.0 + lc * base_gen.4;
@@ -115,13 +104,10 @@ fn proj_kg_cs(base_gen:(RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPo
 
 fn generate_word_cs(base_gen:(RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint))->(Scalar,(RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint)){
     println!("Generate a witness and a Word");
-    let mut csprng = OsRng::new().unwrap();
-    let mut bytes = [0u8; 32];
-    csprng.fill_bytes(&mut bytes);
-    let w=clamp_scalar(bytes);
+    let mut rng = OsRng::new().unwrap();
+    let w=Scalar::random(&mut rng);
 
-    let a=clamp_scalar([0u8; 32]); //berk
-    let mut word=(w*base_gen.0, w*base_gen.1, w*base_gen.2, w*(base_gen.3 +a*base_gen.4));
+    let mut word=(w*base_gen.0, w*base_gen.1, w*base_gen.2, base_gen.4);
     // write input message
 
     let res = hash_to_scal(word.1);
@@ -164,19 +150,6 @@ fn verify_hps(hash:RistrettoPoint,phash:RistrettoPoint) -> bool{
         println!("It fails! Exterminate...");
         return false;
     }
-}
-
-
-
-// Shamelessly stolen from dalek examples:
-fn clamp_scalar(scalar: [u8; 32]) -> Scalar {
-    let mut s: [u8; 32] = scalar.clone();
-
-    s[0]  &= 248;
-    s[31] &= 127;
-    s[31] |= 64;
-
-    Scalar::from_bits(s)
 }
 
 #[cfg(test)]
