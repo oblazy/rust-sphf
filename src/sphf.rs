@@ -2,16 +2,12 @@
 
 use clear_on_drop::clear::Clear;
 
-
-//use curve25519_dalek::constants::ED25519_BASEPOINT_POINT;
-//use curve25519_dalek::edwards::EdwardsPoint;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
 
 use rand_core::RngCore;
 use rand_os::OsRng;
 
-//use std::io;
 
 use sha3::{Digest, Sha3_512};
 
@@ -36,28 +32,28 @@ fn define_language()->(RistrettoPoint,RistrettoPoint){
     // Generates two random points on the curve, whose respective DL is unknown...
     println!("Generating a pair of group elements");
     let mut rng = OsRng::new().unwrap();
-    let g=RistrettoPoint::random(&mut rng);
-    let h=RistrettoPoint::random(&mut rng);
-    println!("tada {}",g==h);
+    let g = RistrettoPoint::random(&mut rng);
+    let h = RistrettoPoint::random(&mut rng);
+
     (g,h)
 }
 
 fn proj_kg(base_gen:(RistrettoPoint,RistrettoPoint))->((Scalar,Scalar),RistrettoPoint){
     println!("Generates a pair of hashing keys (hk, hp)");
     let mut rng = OsRng::new().unwrap();
-    let lg=Scalar::random(&mut rng);  // random scalar to "check" the computation on g
-    let lh=Scalar::random(&mut rng); // random scalar to "check" the computation on h
+    let lg = Scalar::random(&mut rng);  // random scalar to "check" the computation on g
+    let lh = Scalar::random(&mut rng); // random scalar to "check" the computation on h
 
-    let hp=lg * base_gen.0 + lh * base_gen.1;
+    let hp = lg * base_gen.0 + lh * base_gen.1;
     ((lg,lh),hp)
 }
 
 fn generate_word(base_gen:(RistrettoPoint,RistrettoPoint))->(Scalar,(RistrettoPoint,RistrettoPoint)){
     println!("Generate a witness and a Word");
     let mut rng = OsRng::new().unwrap();
-    let w=Scalar::random(&mut rng);
+    let w = Scalar::random(&mut rng);
 
-    let word=(w*base_gen.0, w*base_gen.1);
+    let word = (w*base_gen.0, w*base_gen.1);
     (w,word)
 }
 
@@ -79,11 +75,11 @@ fn define_language_cs()->(RistrettoPoint,RistrettoPoint,RistrettoPoint,Ristretto
     println!("Generating a pair of group elements");
     let mut rng = OsRng::new().unwrap();
 
-    let g=RistrettoPoint::random(&mut rng);
-    let h=RistrettoPoint::random(&mut rng);
-    let f=RistrettoPoint::random(&mut rng);
-    let c=RistrettoPoint::random(&mut rng);
-    let d=RistrettoPoint::random(&mut rng);
+    let g = RistrettoPoint::random(&mut rng);
+    let h = RistrettoPoint::random(&mut rng);
+    let f = RistrettoPoint::random(&mut rng);
+    let c = RistrettoPoint::random(&mut rng);
+    let d = RistrettoPoint::random(&mut rng);
 
     (g,h,f,c,d)
 }
@@ -91,27 +87,27 @@ fn define_language_cs()->(RistrettoPoint,RistrettoPoint,RistrettoPoint,Ristretto
 fn proj_kg_cs(base_gen:(RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint))->((Scalar,Scalar,Scalar,Scalar,Scalar),(RistrettoPoint,RistrettoPoint)){
     println!("Generates a pair of hashing keys (hk, hp)");
     let mut rng = OsRng::new().unwrap();
-    let lg=Scalar::random(&mut rng);  // random scalar to "check" the computation on g
-    let lh=Scalar::random(&mut rng); // random scalar to "check" the computation on h
-    let lf=Scalar::random(&mut rng); // random scalar to "check" the computation on f
-    let lc=Scalar::random(&mut rng); // random scalar to "check" the computation on c and d
-    let lgg=Scalar::random(&mut rng); // random scalar to "check" the computation on g again {Trick to get a KV on CS. BBCPV14}
+    let lg = Scalar::random(&mut rng);  // random scalar to "check" the computation on g
+    let lh = Scalar::random(&mut rng); // random scalar to "check" the computation on h
+    let lf = Scalar::random(&mut rng); // random scalar to "check" the computation on f
+    let lc = Scalar::random(&mut rng); // random scalar to "check" the computation on c and d
+    let mg = Scalar::random(&mut rng); // random scalar to "check" the computation on g again {Trick to get a KV on CS. BBCPV14}
 
-    let hpa = lg * base_gen.0 + lh * base_gen.1 + lf * base_gen.2  + lc * base_gen.3;
-    let hpb= lgg * base_gen.0 + lc * base_gen.4;
-    ((lg,lh,lf,lc,lgg),(hpa,hpb))
+    let hpa = lg * base_gen.0 + lh * base_gen.1 + lf * base_gen.2   + lc * base_gen.3;
+    let hpb = mg * base_gen.0 + lc * base_gen.4;
+    ((lg,lh,lf,lc,mg),(hpa,hpb))
 }
 
 fn generate_word_cs(base_gen:(RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint))->(Scalar,(RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint)){
     println!("Generate a witness and a Word");
     let mut rng = OsRng::new().unwrap();
-    let w=Scalar::random(&mut rng);
+    let w = Scalar::random(&mut rng);
 
-    let mut word=(w*base_gen.0, w*base_gen.1, w*base_gen.2, base_gen.4);
+    let mut word = (w*base_gen.0, w*base_gen.1, w*base_gen.2, base_gen.4);
     // write input message
 
     let res = hash_to_scal(word);
-    word.3=w*(base_gen.3+res*base_gen.4);
+    word.3 = w*(base_gen.3+res*base_gen.4);
 
     (w,word)
 }
@@ -141,7 +137,7 @@ fn proj_hash_cs(hp:(RistrettoPoint,RistrettoPoint),w:Scalar,res:Scalar)->Ristret
 
 fn verify_hps(hash:RistrettoPoint,phash:RistrettoPoint) -> bool{
     println!("Are the hash and projected hashes the same?");
-    if hash==phash {
+    if hash == phash {
         println!("The values match! You are fantastic");
         return true;
     }
@@ -157,23 +153,23 @@ mod test {
 
     fn do_sphf_dh_test(should_succeed: bool) -> bool {
         // Generates the base elements of the Diffie Hellman Language (2 points: g and h)
-        let base_gen=define_language();
+        let base_gen = define_language();
 
         // Generates the keys. hk : lambda, mu (two scalars), and hp : g^lambda . h^mu (a group elem)
-        let (mut hk,hp)=proj_kg(base_gen);
+        let (mut hk,hp) = proj_kg(base_gen);
 
         // Generates a word in L, and it's witness word=(G,H) where G=g^wit, H=h^wit
-        let (mut w,mut word)=generate_word(base_gen);
+        let (mut w,mut word) = generate_word(base_gen);
 
         if ! should_succeed { // Derp the word if we need to fail
             word.1=w*word.1;
         }
 
         // Prover computes his view of the hash G^lambda . H^mu
-        let ha=hash_hps(hk,word);
+        let ha = hash_hps(hk,word);
         hk.clear();
         // Verifier computes his view hp^wit
-        let hb=proj_hash(hp,w);
+        let hb = proj_hash(hp,w);
         w.clear();
 
         // Checking if they have the same view
@@ -191,25 +187,25 @@ mod test {
     }
 
     fn do_sphf_cs_test(should_succeed: bool) -> bool {
-        let base_gen=define_language_cs();
+        let base_gen = define_language_cs();
 
         // Generates the keys. hk : lambda, mu (two scalars), and hp : g^lambda . h^mu (a group elem)
-        let (mut hk,hp)=proj_kg_cs(base_gen);
+        let (mut hk,hp) = proj_kg_cs(base_gen);
 
         // Generates a word in L, and it's witness word=(G,H) where G=g^wit, H=h^wit
-        let (mut w,mut word)=generate_word_cs(base_gen);
+        let (mut w,mut word) = generate_word_cs(base_gen);
 
         if ! should_succeed { // Derp the word if we need to fail
-            word.1=w*word.1;
+            word.1 = w*word.1;
         }
 
         // Prover computes his view of the hash G^lambda . H^mu
-        let ha=hash_hps_cs(hk,word);
+        let ha = hash_hps_cs(hk,word);
         hk.clear();
 
         // Verifier computes his view hp^wit
         let res = hash_to_scal(word);
-        let hb=proj_hash_cs(hp,w,res);
+        let hb = proj_hash_cs(hp,w,res);
         w.clear();
 
         // Checking if they have the same view
