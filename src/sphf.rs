@@ -153,11 +153,8 @@ fn proj_hash_cs(hp:(RistrettoPoint,RistrettoPoint),w:Scalar,res:Scalar)->Ristret
 }
 
 // Basic equality check:
-<<<<<<< HEAD
-fn verify_hps(hash:RistrettoPoint,phash:RistrettoPoint){
-=======
-fn verify_hps(hash:EdwardsPoint,phash:EdwardsPoint) -> bool {
->>>>>>> 6fa3adf8c52cc81fea53116e2be1f9d463645151
+
+fn verify_hps(hash:RistrettoPoint,phash:RistrettoPoint) -> bool{
     println!("Are the hash and projected hashes the same?");
     if hash==phash {
         println!("The values match! You are fantastic");
@@ -256,3 +253,4 @@ mod test {
     fn sphf_cs_failure() {
         assert_eq!(do_sphf_cs_test(false), false);
     }
+}
