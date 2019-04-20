@@ -3,14 +3,15 @@
 use clear_on_drop::clear::Clear;
 
 
-use curve25519_dalek::constants::ED25519_BASEPOINT_POINT;
-use curve25519_dalek::edwards::EdwardsPoint;
+//use curve25519_dalek::constants::ED25519_BASEPOINT_POINT;
+//use curve25519_dalek::edwards::EdwardsPoint;
+use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
 
 use rand_core::RngCore;
 use rand_os::OsRng;
 
-use std::io;
+//use std::io;
 
 use sha3::{Digest, Sha3_512};
 
@@ -31,20 +32,17 @@ use sha3::{Digest, Sha3_512};
 // hopefully the returned values (1 group element each) match.
 
 
-fn define_language()->(EdwardsPoint,EdwardsPoint){
+fn define_language()->(RistrettoPoint,RistrettoPoint){
     // Generates two random points on the curve, whose respective DL is unknown...
     println!("Generating a pair of group elements");
-    let mut csprng = OsRng::new().unwrap();
-    let mut bytes = [0u8; 32];
-    csprng.fill_bytes(&mut bytes);
-    let g=ED25519_BASEPOINT_POINT *clamp_scalar(bytes);
-
-    csprng.fill_bytes(&mut bytes);
-    let h=ED25519_BASEPOINT_POINT *clamp_scalar(bytes);
+    let mut rng = OsRng::new().unwrap();
+    let g=RistrettoPoint::random(&mut rng);
+    let h=RistrettoPoint::random(&mut rng);
+    println!("tada {}",g==h);
     (g,h)
 }
 
-fn proj_kg(base_gen:(EdwardsPoint,EdwardsPoint))->((Scalar,Scalar),EdwardsPoint){
+fn proj_kg(base_gen:(RistrettoPoint,RistrettoPoint))->((Scalar,Scalar),RistrettoPoint){
     println!("Generates a pair of hashing keys (hk, hp)");
     let mut csprng = OsRng::new().unwrap();
     let mut bytes = [0u8; 32];
@@ -57,7 +55,7 @@ fn proj_kg(base_gen:(EdwardsPoint,EdwardsPoint))->((Scalar,Scalar),EdwardsPoint)
     ((lg,lh),hp)
 }
 
-fn generate_word(base_gen:(EdwardsPoint,EdwardsPoint))->(Scalar,(EdwardsPoint,EdwardsPoint)){
+fn generate_word(base_gen:(RistrettoPoint,RistrettoPoint))->(Scalar,(RistrettoPoint,RistrettoPoint)){
     println!("Generate a witness and a Word");
     let mut csprng = OsRng::new().unwrap();
     let mut bytes = [0u8; 32];
@@ -68,12 +66,12 @@ fn generate_word(base_gen:(EdwardsPoint,EdwardsPoint))->(Scalar,(EdwardsPoint,Ed
     (w,word)
 }
 
-fn hash_hps(hk:(Scalar,Scalar),word:(EdwardsPoint,EdwardsPoint))->EdwardsPoint{
+fn hash_hps(hk:(Scalar,Scalar),word:(RistrettoPoint,RistrettoPoint))->RistrettoPoint{
     println!("Computes the verifier hash as the scalar product between the hk and the word");
     hk.0 * word.0 + hk.1 * word.1
 }
 
-fn proj_hash(hp:EdwardsPoint,w:Scalar)->EdwardsPoint{
+fn proj_hash(hp:RistrettoPoint,w:Scalar)->RistrettoPoint{
     println!("Computes the prover projected has as the scalar product between the witness and the projection key");
     w*hp
 }
@@ -81,30 +79,21 @@ fn proj_hash(hp:EdwardsPoint,w:Scalar)->EdwardsPoint{
 
 // Starting the CS Part.
 
-fn define_language_cs()->(EdwardsPoint,EdwardsPoint,EdwardsPoint,EdwardsPoint,EdwardsPoint){
+fn define_language_cs()->(RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint){
     // Generates 5 random points
     println!("Generating a pair of group elements");
-    let mut csprng = OsRng::new().unwrap();
-    let mut bytes = [0u8; 32];
-    csprng.fill_bytes(&mut bytes);
-    let g=ED25519_BASEPOINT_POINT *clamp_scalar(bytes);
+    let mut rng = OsRng::new().unwrap();
 
-    csprng.fill_bytes(&mut bytes);
-    let h=ED25519_BASEPOINT_POINT *clamp_scalar(bytes);
-
-    csprng.fill_bytes(&mut bytes);
-    let f=ED25519_BASEPOINT_POINT *clamp_scalar(bytes);
-
-    csprng.fill_bytes(&mut bytes);
-    let c=ED25519_BASEPOINT_POINT *clamp_scalar(bytes);
-
-    csprng.fill_bytes(&mut bytes);
-    let d=ED25519_BASEPOINT_POINT *clamp_scalar(bytes);
+    let g=RistrettoPoint::random(&mut rng);
+    let h=RistrettoPoint::random(&mut rng);
+    let f=RistrettoPoint::random(&mut rng);
+    let c=RistrettoPoint::random(&mut rng);
+    let d=RistrettoPoint::random(&mut rng);
 
     (g,h,f,c,d)
 }
 
-fn proj_kg_cs(base_gen:(EdwardsPoint,EdwardsPoint,EdwardsPoint,EdwardsPoint,EdwardsPoint))->((Scalar,Scalar,Scalar,Scalar,Scalar),(EdwardsPoint,EdwardsPoint)){
+fn proj_kg_cs(base_gen:(RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint))->((Scalar,Scalar,Scalar,Scalar,Scalar),(RistrettoPoint,RistrettoPoint)){
     println!("Generates a pair of hashing keys (hk, hp)");
     let mut csprng = OsRng::new().unwrap();
     let mut bytes = [0u8; 32];
@@ -124,7 +113,7 @@ fn proj_kg_cs(base_gen:(EdwardsPoint,EdwardsPoint,EdwardsPoint,EdwardsPoint,Edwa
     ((lg,lh,lf,lc,lgg),(hpa,hpb))
 }
 
-fn generate_word_cs(base_gen:(EdwardsPoint,EdwardsPoint,EdwardsPoint,EdwardsPoint,EdwardsPoint))->(Scalar,(EdwardsPoint,EdwardsPoint,EdwardsPoint,EdwardsPoint)){
+fn generate_word_cs(base_gen:(RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint))->(Scalar,(RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint)){
     println!("Generate a witness and a Word");
     let mut csprng = OsRng::new().unwrap();
     let mut bytes = [0u8; 32];
@@ -141,7 +130,7 @@ fn generate_word_cs(base_gen:(EdwardsPoint,EdwardsPoint,EdwardsPoint,EdwardsPoin
     (w,word)
 }
 
-fn hash_to_scal(p:EdwardsPoint)->Scalar{
+fn hash_to_scal(p:RistrettoPoint)->Scalar{
     let mut has = Sha3_512::new();
     has.input(p.compress().to_bytes());
     let mut hash: [u8; 64] = [0u8; 64];
@@ -152,19 +141,19 @@ fn hash_to_scal(p:EdwardsPoint)->Scalar{
     Scalar::from_bits(digest)
 }
 
-fn hash_hps_cs(hk:(Scalar,Scalar,Scalar,Scalar,Scalar),word:(EdwardsPoint,EdwardsPoint,EdwardsPoint,EdwardsPoint))->EdwardsPoint{
+fn hash_hps_cs(hk:(Scalar,Scalar,Scalar,Scalar,Scalar),word:(RistrettoPoint,RistrettoPoint,RistrettoPoint,RistrettoPoint))->RistrettoPoint{
     println!("Computes the verifier hash as the scalar product between the hk and the word");
     let res = hash_to_scal(word.1);
     (hk.0 + res * hk.4) * word.0 + hk.1 * word.1 + hk.2 * word.2 + hk.3*word.3
 }
 
-fn proj_hash_cs(hp:(EdwardsPoint,EdwardsPoint),w:Scalar,res:Scalar)->EdwardsPoint{
+fn proj_hash_cs(hp:(RistrettoPoint,RistrettoPoint),w:Scalar,res:Scalar)->RistrettoPoint{
     println!("Computes the prover projected has as the scalar product between the witness and the projection key");
     w*(hp.0 + res*hp.1)
 }
 
 // Basic equality check:
-fn verify_hps(hash:EdwardsPoint,phash:EdwardsPoint){
+fn verify_hps(hash:RistrettoPoint,phash:RistrettoPoint){
     println!("Are the hash and projected hashes the same?");
     if hash==phash {
         println!("The values match! You are fantastic");
@@ -192,45 +181,45 @@ mod test {
     use super::*;
 
     #[test]
-    fn sphf_both(){
+    fn sphf_eg(){
         // Our main function / examples to test
 
-        println!("Running routines, 1 for DH, else for fake (hash) CS");
+    //    println!("Running routines, 1 for DH, else for fake (hash) CS");
 
-        let mut guess = String::new();
-        io::stdin().read_line(&mut guess)
-                .expect("Failed to read line");
+    //    let mut guess = String::new();
+    //    io::stdin().read_line(&mut guess)
+    //            .expect("Failed to read line");
 
-        let guess: u32 = match guess.trim().parse() {
-                Ok(num) => num,
-                Err(_) => 1,
-        };
+    //    let guess: u32 = match guess.trim().parse() {
+    //            Ok(num) => num,
+    //            Err(_) => 1,
+    //    };
 
-        if guess==1 {
+    //    if guess==1 {
             // Generates the base elements of the Diffie Hellman Language (2 points: g and h)
             let base_gen=define_language();
 
             // Generates the keys. hk : lambda, mu (two scalars), and hp : g^lambda . h^mu (a group elem)
             let (mut hk,hp)=proj_kg(base_gen);
 
-            println!("Should we succeed? (0 no)");
+    //        println!("Should we succeed? (0 no)");
 
-            let mut guess2 = String::new();
-            io::stdin().read_line(&mut guess2)
-                    .expect("Failed to read line");
+    //        let mut guess2 = String::new();
+    //        io::stdin().read_line(&mut guess2)
+    //                .expect("Failed to read line");
 
-                    let guess2: u32 = match guess2.trim().parse() {
-                        Ok(num) => num,
-                        Err(_) => 1,
-                    };
+    //                let guess2: u32 = match guess2.trim().parse() {
+    //                    Ok(num) => num,
+    //                    Err(_) => 1,
+    //                };
 
 
             // Generates a word in L, and it's witness word=(G,H) where G=g^wit, H=h^wit
-                let (mut w,mut word)=generate_word(base_gen);
+                let (mut w,word)=generate_word(base_gen);
 
-            if guess2 == 0 { // Derp the word if we need to fail
-                word.1=w*word.1;
-            }
+    //        if guess2 == 0 { // Derp the word if we need to fail
+    //            word.1=w*word.1;
+    //        }
 
             // Prover computes his view of the hash G^lambda . H^mu
             let ha=hash_hps(hk,word);
@@ -242,31 +231,33 @@ mod test {
             // Checking if they have the same view
             verify_hps(ha,hb);
         }
-        else {
+    #[test]
+    fn sphf_cs() {
+    //    else {
             println!("CS-like SPHF!");
             let base_gen=define_language_cs();
 
-            // Generates the keys. hk : lambda, mu (two scalars), and hp : g^lambda . h^mu (a group elem)
+    //        // Generates the keys. hk : lambda, mu (two scalars), and hp : g^lambda . h^mu (a group elem)
             let (mut hk,hp)=proj_kg_cs(base_gen);
+    //
+    //        println!("Should we succeed? (0 no)");
 
-            println!("Should we succeed? (0 no)");
+    //        let mut guess2 = String::new();
+    //        io::stdin().read_line(&mut guess2)
+    //                .expect("Failed to read line");
 
-            let mut guess2 = String::new();
-            io::stdin().read_line(&mut guess2)
-                    .expect("Failed to read line");
-
-                    let guess2: u32 = match guess2.trim().parse() {
-                        Ok(num) => num,
-                        Err(_) => 1,
-                    };
+    //                let guess2: u32 = match guess2.trim().parse() {
+    //                    Ok(num) => num,
+    //                    Err(_) => 1,
+    //                };
 
 
-            // Generates a word in L, and it's witness word=(G,H) where G=g^wit, H=h^wit
-                let (mut w,mut word)=generate_word_cs(base_gen);
+        // Generates a word in L, and it's witness word=(G,H) where G=g^wit, H=h^wit
+            let (mut w, word)=generate_word_cs(base_gen);
 
-            if guess2 == 0 { // Derp the word if we need to fail
-                word.1=w*word.1;
-            }
+        //    if guess2 == 0 { // Derp the word if we need to fail
+        //        word.1=w*word.1;
+        //    }
 
             // Prover computes his view of the hash G^lambda . H^mu
             let ha=hash_hps_cs(hk,word);
@@ -282,4 +273,3 @@ mod test {
 
         }
     }
-}
