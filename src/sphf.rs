@@ -164,13 +164,15 @@ fn proj_hash_cs(hp:(EdwardsPoint,EdwardsPoint),w:Scalar,res:Scalar)->EdwardsPoin
 }
 
 // Basic equality check:
-fn verify_hps(hash:EdwardsPoint,phash:EdwardsPoint){
+fn verify_hps(hash:EdwardsPoint,phash:EdwardsPoint) -> bool {
     println!("Are the hash and projected hashes the same?");
     if hash==phash {
         println!("The values match! You are fantastic");
+        return true;
     }
     else {
-        println!("It fails! Exterminate...")
+        println!("It fails! Exterminate...");
+        return false;
     }
 }
 
