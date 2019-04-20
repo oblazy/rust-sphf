@@ -153,13 +153,19 @@ fn proj_hash_cs(hp:(RistrettoPoint,RistrettoPoint),w:Scalar,res:Scalar)->Ristret
 }
 
 // Basic equality check:
+<<<<<<< HEAD
 fn verify_hps(hash:RistrettoPoint,phash:RistrettoPoint){
+=======
+fn verify_hps(hash:EdwardsPoint,phash:EdwardsPoint) -> bool {
+>>>>>>> 6fa3adf8c52cc81fea53116e2be1f9d463645151
     println!("Are the hash and projected hashes the same?");
     if hash==phash {
         println!("The values match! You are fantastic");
+        return true;
     }
     else {
-        println!("It fails! Exterminate...")
+        println!("It fails! Exterminate...");
+        return false;
     }
 }
 
@@ -180,96 +186,73 @@ fn clamp_scalar(scalar: [u8; 32]) -> Scalar {
 mod test {
     use super::*;
 
-    #[test]
-    fn sphf_eg(){
-        // Our main function / examples to test
+    fn do_sphf_dh_test(should_succeed: bool) -> bool {
+        // Generates the base elements of the Diffie Hellman Language (2 points: g and h)
+        let base_gen=define_language();
 
-    //    println!("Running routines, 1 for DH, else for fake (hash) CS");
-
-    //    let mut guess = String::new();
-    //    io::stdin().read_line(&mut guess)
-    //            .expect("Failed to read line");
-
-    //    let guess: u32 = match guess.trim().parse() {
-    //            Ok(num) => num,
-    //            Err(_) => 1,
-    //    };
-
-    //    if guess==1 {
-            // Generates the base elements of the Diffie Hellman Language (2 points: g and h)
-            let base_gen=define_language();
-
-            // Generates the keys. hk : lambda, mu (two scalars), and hp : g^lambda . h^mu (a group elem)
-            let (mut hk,hp)=proj_kg(base_gen);
-
-    //        println!("Should we succeed? (0 no)");
-
-    //        let mut guess2 = String::new();
-    //        io::stdin().read_line(&mut guess2)
-    //                .expect("Failed to read line");
-
-    //                let guess2: u32 = match guess2.trim().parse() {
-    //                    Ok(num) => num,
-    //                    Err(_) => 1,
-    //                };
-
-
-            // Generates a word in L, and it's witness word=(G,H) where G=g^wit, H=h^wit
-                let (mut w,word)=generate_word(base_gen);
-
-    //        if guess2 == 0 { // Derp the word if we need to fail
-    //            word.1=w*word.1;
-    //        }
-
-            // Prover computes his view of the hash G^lambda . H^mu
-            let ha=hash_hps(hk,word);
-            hk.clear();
-            // Verifier computes his view hp^wit
-            let hb=proj_hash(hp,w);
-            w.clear();
-
-            // Checking if they have the same view
-            verify_hps(ha,hb);
-        }
-    #[test]
-    fn sphf_cs() {
-    //    else {
-            println!("CS-like SPHF!");
-            let base_gen=define_language_cs();
-
-    //        // Generates the keys. hk : lambda, mu (two scalars), and hp : g^lambda . h^mu (a group elem)
-            let (mut hk,hp)=proj_kg_cs(base_gen);
-    //
-    //        println!("Should we succeed? (0 no)");
-
-    //        let mut guess2 = String::new();
-    //        io::stdin().read_line(&mut guess2)
-    //                .expect("Failed to read line");
-
-    //                let guess2: u32 = match guess2.trim().parse() {
-    //                    Ok(num) => num,
-    //                    Err(_) => 1,
-    //                };
-
+        // Generates the keys. hk : lambda, mu (two scalars), and hp : g^lambda . h^mu (a group elem)
+        let (mut hk,hp)=proj_kg(base_gen);
 
         // Generates a word in L, and it's witness word=(G,H) where G=g^wit, H=h^wit
-            let (mut w, word)=generate_word_cs(base_gen);
+        let (mut w,mut word)=generate_word(base_gen);
 
-        //    if guess2 == 0 { // Derp the word if we need to fail
-        //        word.1=w*word.1;
-        //    }
-
-            // Prover computes his view of the hash G^lambda . H^mu
-            let ha=hash_hps_cs(hk,word);
-            hk.clear();
-
-            // Verifier computes his view hp^wit
-            let res = hash_to_scal(word.1);
-            let hb=proj_hash_cs(hp,w,res);
-            w.clear();
-
-            // Checking if they have the same view
-            verify_hps(ha,hb);
-
+        if ! should_succeed { // Derp the word if we need to fail
+            word.1=w*word.1;
         }
+
+        // Prover computes his view of the hash G^lambda . H^mu
+        let ha=hash_hps(hk,word);
+        hk.clear();
+        // Verifier computes his view hp^wit
+        let hb=proj_hash(hp,w);
+        w.clear();
+
+        // Checking if they have the same view
+        return verify_hps(ha,hb);
+    }
+
+    #[test]
+    fn sphf_dh_success() {
+        assert_eq!(do_sphf_dh_test(true), true);
+    }
+
+    #[test]
+    fn sphf_dh_failure() {
+        assert_eq!(do_sphf_dh_test(false), false);
+    }
+
+    fn do_sphf_cs_test(should_succeed: bool) -> bool {
+        let base_gen=define_language_cs();
+
+        // Generates the keys. hk : lambda, mu (two scalars), and hp : g^lambda . h^mu (a group elem)
+        let (mut hk,hp)=proj_kg_cs(base_gen);
+
+        // Generates a word in L, and it's witness word=(G,H) where G=g^wit, H=h^wit
+        let (mut w,mut word)=generate_word_cs(base_gen);
+
+        if ! should_succeed { // Derp the word if we need to fail
+            word.1=w*word.1;
+        }
+
+        // Prover computes his view of the hash G^lambda . H^mu
+        let ha=hash_hps_cs(hk,word);
+        hk.clear();
+
+        // Verifier computes his view hp^wit
+        let res = hash_to_scal(word.1);
+        let hb=proj_hash_cs(hp,w,res);
+        w.clear();
+
+        // Checking if they have the same view
+        return verify_hps(ha,hb);
+    }
+
+    #[test]
+    fn sphf_cs_success() {
+        assert_eq!(do_sphf_cs_test(true), true);
+    }
+
+    #[test]
+    fn sphf_cs_failure() {
+        assert_eq!(do_sphf_cs_test(false), false);
     }
