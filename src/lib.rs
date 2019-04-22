@@ -3,8 +3,8 @@
 //! # Examples
 //!
 //! ```
-//! # TODO (if you put code here it'll run as a test and also show up
-//! #       in the crate-level documentation!)
+//! # // TODO (if you put code here it'll run as a test and also show up
+//! # //       in the crate-level documentation!)
 //! ```
 
 mod sphf;
