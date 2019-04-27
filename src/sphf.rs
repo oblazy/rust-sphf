@@ -7,6 +7,7 @@ use curve25519_dalek::scalar::Scalar;
 
 use rand_core::RngCore;
 use rand_os::OsRng;
+use rand::Rng;
 
 
 use sha3::{Digest, Sha3_512};
@@ -63,6 +64,65 @@ fn hash_hps(hk:(Scalar,Scalar),word:(RistrettoPoint,RistrettoPoint))->RistrettoP
 }
 
 fn proj_hash(hp:RistrettoPoint,w:Scalar)->RistrettoPoint{
+    println!("Computes the prover projected has as the scalar product between the witness and the projection key");
+    w*hp
+}
+
+fn define_languagen(n:usize)->(Vec<RistrettoPoint>){
+    // Generates two random points on the curve, whose respective DL is unknown...
+
+    println!("Generating {}  group elements",n);
+    let mut rng = OsRng::new().unwrap();
+    let mut t: Vec<RistrettoPoint> = Vec::with_capacity(n);// So we don't have the array being reallocated ?
+    for i in 0 .. n+1{
+        println!("Step {}",i);
+         t.push(RistrettoPoint::random(&mut rng));
+    }
+
+    t
+
+
+}
+
+fn proj_kgn(base_gen:&Vec<RistrettoPoint>)->(Vec<Scalar>,RistrettoPoint){
+    println!("Generates a pair of hashing keys (hk, hp)");
+    let mut rng = OsRng::new().unwrap();
+    let k = base_gen.len();
+    let mut hk: Vec<Scalar> = Vec::with_capacity(k);// So we don't have the array being reallocated ?
+    let mut hp= Scalar::zero()*(&base_gen[0]);
+    for i in 0..k{  //array length : initial n=k+1
+        hk.push(Scalar::random(&mut rng));
+        hp += hk[i] * &base_gen[i];
+    }
+
+    (hk,hp)
+}
+
+fn generate_wordn(base_gen:&Vec<RistrettoPoint>)->(Scalar,Vec<RistrettoPoint>){
+    println!("Generate a witness and a Word");
+    let mut rng = OsRng::new().unwrap();
+    let w = Scalar::random(&mut rng);
+    let k = base_gen.len();
+    let mut word: Vec<RistrettoPoint> = Vec::with_capacity(k);
+    for i in 0..k {  // Can probably be made cleaner? Generic mapper on a vec ?
+        word.push(w*&base_gen[i]);
+    }
+
+    (w,word)
+}
+
+fn hash_hpsn(hk:&Vec<Scalar>,word:&Vec<RistrettoPoint>)->RistrettoPoint{
+    println!("Computes the verifier hash as the scalar product between the hk and the word");
+    let k = word.len();
+    let mut H= Scalar::zero()*word[0];
+    for i in 0..k{
+        H += &hk[i] * &word[i];
+    }
+
+    H
+}
+
+fn proj_hashn(hp:RistrettoPoint,w:Scalar)->RistrettoPoint{
     println!("Computes the prover projected has as the scalar product between the witness and the projection key");
     w*hp
 }
@@ -221,4 +281,45 @@ mod test {
     fn sphf_cs_failure() {
         assert_eq!(do_sphf_cs_test(false), false);
     }
+
+    fn do_sphf_dhn_test(should_succeed: bool) -> bool {
+        // Generates the base elements of the Diffie Hellman Language (2 points: g and h)
+        let n:usize = 2;
+
+//        let n: usize = rng.gen();
+
+        let base_gen = define_languagen(n);
+
+        // Generates the keys. hk : lambda, mu (two scalars), and hp : g^lambda . h^mu (a group elem)
+        let (mut hk,hp) = proj_kgn(&base_gen);
+
+        // Generates a word in L, and it's witness word=(G,H) where G=g^wit, H=h^wit
+        let (mut w,mut word) = generate_wordn(&base_gen);
+
+        if ! should_succeed { // Derp the word if we need to fail
+           word[1]=w*word[1];
+        }
+
+        // Prover computes his view of the hash G^lambda . H^mu
+        let ha = hash_hpsn(&hk,&word);
+        hk.clear();
+        // Verifier computes his view hp^wit
+        let hb = proj_hashn(hp,w);
+        w.clear();
+
+        // Checking if they have the same view
+        return verify_hps(ha,hb);
+    }
+
+    #[test]
+    fn sphf_dhn_success() {
+        assert_eq!(do_sphf_dhn_test(true), true);
+    }
+
+    #[test]
+    fn sphf_dhn_failure() {
+        assert_eq!(do_sphf_dhn_test(false), false);
+    }
+
+
 }
